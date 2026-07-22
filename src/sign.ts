@@ -38,8 +38,6 @@ export async function loadPrivateKey(
       : pem
   );
 }
-}
-
 export function signBytes(key: KeyObject, data: Buffer): Buffer {
   // Ed25519: algorithm arg must be null (PureEdDSA).
   return nodeSign(null, data, key);
