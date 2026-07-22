@@ -1,0 +1,108 @@
+{
+  "source": "Cross-implementation JCS vectors supplied by reviewer (Python rfc8785 0.1.4 reference).",
+  "purpose": "Feed each 'input' to seilx canonicalize. Output bytes and SHA-256 must match exactly. A mismatch means one of the two implementations is wrong and cross-system hashes will not agree.",
+  "vectors": [
+    {
+      "name": "integers_and_floats_no_exponent",
+      "note": "SEILX v0.1 forbids exponent notation on input AND output. Vectors that exercise 1e+30 / 1e-07 exist only in must_reject.",
+      "input": { "a": 42, "b": 42.0, "c": 42.5, "d": -0.0 },
+      "canonical": "{\"a\":42,\"b\":42,\"c\":42.5,\"d\":0}",
+      "sha256": "609fdd2d79793b078f6d77239582abc8932d59a8cc0e4f431e0011b6c3746f30"
+    },
+    {
+      "name": "unicode_key_order",
+      "input": { "é": 1, "e": 2, "€": 3, "ü": 4, "z": 5, "😀": 6, "A": 7, "a": 8 },
+      "canonical": "{\"A\":7,\"a\":8,\"e\":2,\"z\":5,\"é\":1,\"ü\":4,\"€\":3,\"😀\":6}",
+      "sha256": "cc21322999c3b631e7b7ac8eefe55defb3f3e830f40b497b17baa0805811bb39"
+    },
+    {
+      "name": "string_escapes",
+      "input": { "s": "line\nbreak\ttab \"quote\" back\\slash" },
+      "canonical": "{\"s\":\"line\\nbreak\\ttab \\\"quote\\\" back\\\\slash\"}",
+      "sha256": "e3abd3da9f9075a4a6630f48d0ad3f3c18467071b10986fe21a0dc7941e42758"
+    },
+    {
+      "name": "nested_and_empty",
+      "input": { "z": [], "a": {}, "m": [1, [2, [3]]], "n": null, "t": true },
+      "canonical": "{\"a\":{},\"m\":[1,[2,[3]]],\"n\":null,\"t\":true,\"z\":[]}",
+      "sha256": "114efcb758e7749da6f0247b99e99549ea2e928db386fa9e1cf14976cbfe5ebf"
+    },
+    {
+      "name": "seilx_shape",
+      "input": {
+        "schema_version": "0.1.0",
+        "artifact_id": "seilx-evidence-001",
+        "synthetic": true,
+        "decision_event": {
+          "event_id": "3f8a1c02-5b6d-4e91-a7c3-9d2e4f8b1a60",
+          "decision": "APPROVE",
+          "decided_at": "2026-07-16T11:04:22Z"
+        },
+        "captured_state": {
+          "model_version": "2026-05-01",
+          "score": 0.94,
+          "threshold": 1.0,
+          "operator_ref": "operator-17"
+        }
+      },
+      "canonical": "{\"artifact_id\":\"seilx-evidence-001\",\"captured_state\":{\"model_version\":\"2026-05-01\",\"operator_ref\":\"operator-17\",\"score\":0.94,\"threshold\":1},\"decision_event\":{\"decided_at\":\"2026-07-16T11:04:22Z\",\"decision\":\"APPROVE\",\"event_id\":\"3f8a1c02-5b6d-4e91-a7c3-9d2e4f8b1a60\"},\"schema_version\":\"0.1.0\",\"synthetic\":true}",
+      "sha256": "acbe3b05a254a9952d1e2713aede845cad44d40ad22756b191b29c86f77feaab"
+    }
+  ],
+  "must_reject": [
+    {
+      "name": "unsafe_integer_above_2p53",
+      "text": "{\"big\":9007199254740993}",
+      "expected_rule": "unsafe_integer",
+      "reason": "Values outside the interoperable integer range -(2^53-1)..(2^53-1) may lose precision when represented as IEEE 754 numbers, and libraries may apply different input-domain restrictions. To guarantee cross-implementation determinism, the SEILX profile requires unsafe integers to be rejected or encoded as strings. This is a SEILX interoperability constraint, not an RFC 8785 requirement."
+    },
+    {
+      "name": "duplicate_property_name",
+      "text": "{\"a\":1,\"a\":2}",
+      "expected_rule": "duplicate_key",
+      "reason": "JSON.parse silently keeps only one of the values. SEILX rejects the input so canonicalization cannot depend on the parser's choice."
+    },
+    {
+      "name": "duplicate_property_name_nested_object",
+      "text": "{\"outer\":{\"x\":1,\"x\":2}}",
+      "expected_rule": "duplicate_key",
+      "reason": "Regression: duplicate keys inside a nested object must also be rejected at text-scan time — the outer object hides nothing."
+    },
+    {
+      "name": "duplicate_property_name_inside_array",
+      "text": "{\"arr\":[{\"k\":1,\"k\":2}]}",
+      "expected_rule": "duplicate_key",
+      "reason": "Regression: duplicate keys inside an object nested in an array must also be rejected."
+    },
+    {
+      "name": "lone_high_surrogate",
+      "text": "{\"s\":\"\\uD83D\"}",
+      "expected_rule": "lone_surrogate",
+      "reason": "A high surrogate without its matching low surrogate cannot be encoded in UTF-8 and would hash differently between implementations."
+    },
+    {
+      "name": "nan_literal",
+      "text": "{\"x\":NaN}",
+      "expected_rule": "nan_or_infinity",
+      "reason": "NaN is not a JSON value and has no canonical representation."
+    },
+    {
+      "name": "infinity_literal",
+      "text": "{\"x\":Infinity}",
+      "expected_rule": "nan_or_infinity",
+      "reason": "Infinity is not a JSON value and has no canonical representation."
+    },
+    {
+      "name": "exponent_notation_large",
+      "text": "{\"x\":1e+30}",
+      "expected_rule": "exponent_notation",
+      "reason": "SEILX v0.1 forbids exponent notation on input. RFC 8785 permits it, but SEILX narrows the input profile so canonical output never contains 'e'/'E'. Represent such values as strings."
+    },
+    {
+      "name": "exponent_notation_small",
+      "text": "{\"x\":1e-7}",
+      "expected_rule": "exponent_notation",
+      "reason": "Same rule: SEILX v0.1 forbids exponent notation on numeric literals."
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "seilx-evidence-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SEILX reference implementation v0.1 — synthetic evidence packet builder + verifier. Reference only, not a production system.",
+  "type": "module",
+  "bin": {
+    "seilx": "./bin/seilx.mjs"
+  },
+  "scripts": {
+    "seilx": "node --experimental-strip-types src/cli.ts",
+    "demo": "node --experimental-strip-types src/cli.ts demo",
+    "verify:demo": "node --experimental-strip-types src/cli.ts verify examples/Evidence_Packet_001"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "dependencies": {
+    "canonicalize": "^2.0.0"
+  }
+}
