@@ -84,9 +84,11 @@ async function main() {
       const key = arg(rest, "--key");
       const identity = arg(rest, "--identity");
       const sourceDate = arg(rest, "--source-date");
+      const privateKeyPassphrase = process.env.SEILX_KEY_PASSPHRASE;
       const out = await buildEvidencePacket({
         outDir,
         privateKeyPath: key,
+        privateKeyPassphrase,
         identityPath: identity,
         sourceDate,
       });
