@@ -126,6 +126,7 @@ MUST include a \`FAILED\` line for that file.
 export interface BuildOptions {
   outDir: string;
   privateKeyPath?: string; // if omitted, a fresh ephemeral keypair is generated
+  privateKeyPassphrase?: string;
   identityPath?: string; // optional JSON file declaring a published-identity binding
   synthetic?: boolean;
   /**
@@ -211,7 +212,10 @@ export async function buildEvidencePacket(opts: BuildOptions): Promise<string> {
   let identityBinding: "published" | "ephemeral-packet-local" = "ephemeral-packet-local";
   let identityMeta: unknown = null;
   if (opts.privateKeyPath) {
-    privateKey = await loadPrivateKey(opts.privateKeyPath);
+    privateKey = await loadPrivateKey(
+  opts.privateKeyPath,
+  opts.privateKeyPassphrase
+);
     // Derive public key from private.
     publicPem = createPublicKey(privateKey).export({ type: "spki", format: "pem" }) as string;
     if (opts.identityPath) {
