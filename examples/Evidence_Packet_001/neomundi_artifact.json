@@ -1,0 +1,1 @@
+{"measured_at":"2026-07-22T22:25:09.109Z","measurement_id":"meas_synth_0001","provenance":{"note":"Generated and asserted by the NeoMundi measurement system but not independently recomputed by SEILX.","system":"NeoMundi"},"schema_version":"neomundi-measurement/0.1","signal":{"metric":"synthetic_metric","unit":"au","value":0.42},"subject_id":"subj_synth_0001","synthetic":true}

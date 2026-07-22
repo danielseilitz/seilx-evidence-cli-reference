@@ -453,7 +453,9 @@ async function loadAndValidateIdentity(
     );
   }
 
-  const expectedFp = sha256Hex(declaredPem.trim());
+  const expectedFp = sha256Hex(
+  createPublicKey(declaredPem).export({ type: "spki", format: "der" }) as Buffer
+);
   if (String(parsed.fingerprint_sha256).toLowerCase() !== expectedFp) {
     throw new Error(
       `Identity fingerprint_sha256 does not match sha256(trimmed public_key_pem).\n` +

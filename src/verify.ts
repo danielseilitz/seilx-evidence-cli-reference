@@ -73,7 +73,7 @@ export async function verifyPacket(dir: string, opts: VerifyOptions = {}): Promi
   // 1. hashes.sha256
   try {
     const raw = await readFile(join(dir, "hashes.sha256"), "utf8");
-    for (const line of raw.split("\n").filter((l) => l.trim())) {
+    for (const line of raw.split(/\r?\n/).filter((l) => l.trim())) {
       const m = line.match(/^([a-f0-9]{64})\s{2}(.+)$/);
       if (!m) {
         fail("hashes.sha256:format", `Malformed line: ${line}`);
