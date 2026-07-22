@@ -22,8 +22,22 @@ export async function loadPublicKey(path: string): Promise<KeyObject> {
   return createPublicKey(await readFile(path, "utf8"));
 }
 
-export async function loadPrivateKey(path: string): Promise<KeyObject> {
-  return createPrivateKey(await readFile(path, "utf8"));
+export async function loadPrivateKey(
+  path: string,
+  passphrase?: string
+): Promise<KeyObject> {
+  const pem = await readFile(path, "utf8");
+
+  return createPrivateKey(
+    passphrase
+      ? {
+          key: pem,
+          format: "pem",
+          passphrase,
+        }
+      : pem
+  );
+}
 }
 
 export function signBytes(key: KeyObject, data: Buffer): Buffer {
