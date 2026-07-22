@@ -6,7 +6,7 @@
   "valid_from": "REPLACE_WITH_ISO8601_UTC",
   "valid_until": null,
   "issuer": "REPLACE_WITH_ISSUER_STRING",
-  "publication_url": "REPLACE_WITH_HTTPS_URL_TO_seilx_public.pem",
+  "publication_url": "https://www.seilx.com/keys/seilx-signing-2026-01.pem",
   "fingerprint_sha256": "REPLACE_WITH_SHA256_HEX_OF_TRIMMED_PEM",
   "public_key_pem": "REPLACE_WITH_SPKI_PEM_INCLUDING_BEGIN_END_LINES\n",
   "notes": "Fill in with values produced by 'seilx export-pubkey' after generating the permanent key OUTSIDE this repository. Never place the private key here."
