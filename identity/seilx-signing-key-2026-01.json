@@ -7,7 +7,7 @@
   "valid_until": null,
   "issuer": "SEILX",
   "publication_url": "https://www.seilx.com/keys/seilx-signing-2026-01.pem",
-  "fingerprint_sha256": "1182b3d180b3da389411e19de0e9a2a4bc0a286d0a4c5e5732a1a76b357039b9",
-  "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAc5l3vSgilbIBeBCrACetQFEGrvRw98xAK4WnwE7FBsc=\n-----END PUBLIC KEY-----\n",
+  "fingerprint_sha256": 5e49e6bd6c6155336ece5ea43c59d4b95560a88b6cf60f386de3f811637a8e8a5
+  "public_key_pem": -----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAsStDw7n6BX3jRi1H6ELaJb8oBswpJppyrCBdvC2s5wE=\n-----END PUBLIC KEY-----\n
   "notes": "Fill in with values produced by 'seilx export-pubkey' after generating the permanent key OUTSIDE this repository. Never place the private key here."
 }
