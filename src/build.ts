@@ -1,4 +1,4 @@
-import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile, readdir, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalJson } from "./canonicalize.ts";
@@ -143,7 +143,13 @@ export async function buildEvidencePacket(opts: BuildOptions): Promise<string> {
   const { outDir } = opts;
   await mkdir(outDir, { recursive: true });
   await mkdir(join(outDir, "timestamps"), { recursive: true });
+const timestampsDir = join(outDir, "timestamps");
 
+for (const file of await readdir(timestampsDir)) {
+  if (file.endsWith(".tsq") || file.endsWith(".tsr")) {
+    await rm(join(timestampsDir, file));
+  }
+}
   // 1. Synthetic artifacts.
   const now = resolveBuildTime(opts.sourceDate);
 
