@@ -5,6 +5,7 @@ import { canonicalJson } from "./canonicalize.ts";
 import { sha256Hex } from "./hash.ts";
 import { loadPublicKey, verifyBytes } from "./sign.ts";
 import { haveOpenssl, readTimestampGenTime, verifyTimestamp } from "./tsr.ts";
+import { createPublicKey } from "node:crypto";
 
 export interface VerifyReport {
   ok: boolean;
@@ -170,7 +171,12 @@ export async function verifyPacket(dir: string, opts: VerifyOptions = {}): Promi
     const info = JSON.parse(infoRaw);
     const binding = info.identity_binding;
     const packetPubPem = await readFile(join(dir, "public_key.pem"), "utf8");
-    const packetFp = sha256Hex(packetPubPem.trim());
+    const packetFp = sha256Hex(
+     createPublicKey(packetPubPem).export({
+       type: "spki",
+      format: "der"
+     }) as Buffer
+    );
 
     // Load an external key from either a file or an HTTPS URL (or both — they
     // must agree). Downloaded content is compared to the packet key in the
@@ -244,7 +250,12 @@ export async function verifyPacket(dir: string, opts: VerifyOptions = {}): Promi
 
     if (externalPem) {
       // Independent retrieval was performed by the operator. Compare fingerprints.
-      const externalFp = sha256Hex(externalPem);
+      const externalFp = sha256Hex(
+  createPublicKey(externalPem).export({
+    type: "spki",
+    format: "der"
+  }) as Buffer
+);
       if (externalFp === packetFp) {
         pass(
           "identity",
