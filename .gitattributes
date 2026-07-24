@@ -1,0 +1,16 @@
+# Normalize line endings across platforms.
+# Text files are stored with LF in the repo and checked out with LF,
+# so their bytes are identical on Windows, Linux and macOS.
+* text=auto eol=lf
+
+# Files whose exact bytes are hashed or signed — force LF explicitly.
+*.json   text eol=lf
+*.md     text eol=lf
+*.pem    text eol=lf
+*.sha256 text eol=lf
+
+# Opaque binary artifacts — never touch their bytes.
+*.sig -text
+*.tsq -text
+*.tsr -text
+*.der -text
