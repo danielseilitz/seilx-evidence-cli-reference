@@ -6,6 +6,27 @@ import { sha256Hex } from "./hash.ts";
 import { loadPublicKey, verifyBytes } from "./sign.ts";
 import { haveOpenssl, readTimestampGenTime, verifyTimestamp } from "./tsr.ts";
 import { createPublicKey } from "node:crypto";
+/**
+ * Read an Ed25519 (or any SPKI) public key from PEM text via DER, and return
+ * its SHA-256 fingerprint over the DER (SPKI) bytes.
+ *
+ * Node's createPublicKey() on a raw PEM string throws
+ * `DECODER routines::unsupported` for Ed25519 under OpenSSL 3 providers.
+ * Decoding PEM -> base64 -> DER and reading it as {format:"der",type:"spki"}
+ * is the reliable path. The fingerprint is computed over the DER bytes, never
+ * over the PEM text, so whitespace or line-ending variants of the same key
+ * produce the same fingerprint.
+ */
+function publicKeyFingerprint(pem: string): string {
+  const b64 = pem
+    .replace(/-----BEGIN PUBLIC KEY-----/, "")
+    .replace(/-----END PUBLIC KEY-----/, "")
+    .replace(/\s+/g, "");
+  const der = Buffer.from(b64, "base64");
+  // Validate it really is a well-formed SPKI key; throws on garbage input.
+  createPublicKey({ key: der, format: "der", type: "spki" });
+  return sha256Hex(der);
+}
 
 export interface VerifyReport {
   ok: boolean;
@@ -171,13 +192,7 @@ export async function verifyPacket(dir: string, opts: VerifyOptions = {}): Promi
     const info = JSON.parse(infoRaw);
     const binding = info.identity_binding;
     const packetPubPem = await readFile(join(dir, "public_key.pem"), "utf8");
-    const packetFp = sha256Hex(
-     createPublicKey(packetPubPem).export({
-       type: "spki",
-      format: "der"
-     }) as Buffer
-    );
-
+  const packetFp = publicKeyFingerprint(packetPubPem);
     // Load an external key from either a file or an HTTPS URL (or both — they
     // must agree). Downloaded content is compared to the packet key in the
     // same way as a locally-supplied file: the security value is the
@@ -233,10 +248,10 @@ export async function verifyPacket(dir: string, opts: VerifyOptions = {}): Promi
           `Out-of-band fingerprint (${expected}) does NOT match packet public_key.pem fingerprint (${packetFp}). Reject.`,
           "signing_info.json",
         );
-      } else if (externalPem && sha256Hex(externalPem) !== expected) {
+      } else if (externalPem && publicKeyFingerprint(externalPem) !== expected) {
         fail(
           "identity",
-          `Out-of-band fingerprint (${expected}) does NOT match externally supplied key (sha256=${sha256Hex(externalPem)}).`,
+          `Out-of-band fingerprint (${expected}) does NOT match externally supplied key (sha256=${publicKeyFingerprint(externalPem)}).`,
           "signing_info.json",
         );
       } else if (!externalPem) {
@@ -250,12 +265,7 @@ export async function verifyPacket(dir: string, opts: VerifyOptions = {}): Promi
 
     if (externalPem) {
       // Independent retrieval was performed by the operator. Compare fingerprints.
-      const externalFp = sha256Hex(
-  createPublicKey(externalPem).export({
-    type: "spki",
-    format: "der"
-  }) as Buffer
-);
+      const externalFp = publicKeyFingerprint(externalPem);
       if (externalFp === packetFp) {
         pass(
           "identity",
