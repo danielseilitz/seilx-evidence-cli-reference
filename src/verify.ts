@@ -81,6 +81,13 @@ export interface VerifyOptions {
    * is also set, the downloaded key must ALSO match. Any mismatch → FAIL.
    */
   externalFingerprint?: string;
+  /**
+   * Verification profile. Default (undefined) requires temporal anchoring:
+   * a packet with no RFC 3161 timestamps FAILS. Set to "integrity-only" to
+   * deliberately verify internal integrity without requiring temporal
+   * anchoring — the missing anchoring is then reported as WARN, not FAIL.
+   */
+  profile?: string;
 }
 
 export async function verifyPacket(dir: string, opts: VerifyOptions = {}): Promise<VerifyReport> {
@@ -308,10 +315,17 @@ export async function verifyPacket(dir: string, opts: VerifyOptions = {}): Promi
     const files = (await readdir(tsDir)).filter((f) => f.endsWith(".tsr"));
     const caFile = join(tsDir, "tsa_ca.pem");
     if (files.length === 0) {
-      warn(
-        "timestamps",
-        "No .tsr responses present. Temporal anchoring is UNVERIFIED — the packet has no cryptographic proof it existed at any specific moment. Obtain RFC 3161 tokens from a trusted TSA and re-run.",
-      );
+      if (opts.profile === "integrity-only") {
+        warn(
+          "timestamps",
+          "No .tsr responses present, but --profile integrity-only was set. Temporal anchoring is deliberately not required for this run — the packet has no cryptographic proof it existed at any specific moment.",
+        );
+      } else {
+        fail(
+          "timestamps",
+          "No .tsr responses present. Temporal anchoring is UNVERIFIED — the packet has no cryptographic proof it existed at any specific moment. A SEILX evidence packet requires RFC 3161 timestamps by default; obtain tokens from a trusted TSA and re-run, or use --profile integrity-only to verify internal integrity only.",
+        );
+      }
     } else if (!haveOpenssl()) {
       fail("timestamps:openssl", "openssl not found on PATH — cannot verify RFC 3161 timestamps.");
     } else {
@@ -378,10 +392,17 @@ export async function verifyPacket(dir: string, opts: VerifyOptions = {}): Promi
     }
   }
   else {
-    warn(
-      "timestamps",
-      "No timestamps/ directory. Temporal anchoring is UNVERIFIED.",
-    );
+    if (opts.profile === "integrity-only") {
+      warn(
+        "timestamps",
+        "No timestamps/ directory, but --profile integrity-only was set. Temporal anchoring is deliberately not required for this run.",
+      );
+    } else {
+      fail(
+        "timestamps",
+        "No timestamps/ directory. Temporal anchoring is UNVERIFIED. A SEILX evidence packet requires RFC 3161 timestamps by default; add a timestamps/ directory with TSA tokens and re-run, or use --profile integrity-only to verify internal integrity only.",
+      );
+    }
   }
 
   return { ok: checks.every((c) => c.ok), checks };

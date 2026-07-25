@@ -35,6 +35,9 @@ Usage:
       otherwise it stays WARN.
       Optional: --json to emit a machine-readable verification report
       (schema seilx-verify-report/0.1). Non-zero exit on FAIL.
+      Optional: --profile integrity-only to verify internal integrity
+      without requiring RFC 3161 temporal anchoring (missing timestamps
+      become a WARN instead of the default FAIL).
   seilx package <packetDir> [--out <archive.tar.gz>]
       Bundle a packet into a portable review archive (tar.gz) with a
       REVIEW.md checklist and the SHA-256 of the archive itself for
@@ -106,11 +109,13 @@ async function main() {
       const externalKey = arg(rest, "--external-key");
       const externalKeyUrl = arg(rest, "--external-key-url");
       const externalFingerprint = arg(rest, "--external-fingerprint");
+      const profile = arg(rest, "--profile");
       const asJson = rest.includes("--json");
       const r = await verifyPacket(dir, {
         externalKeyPath: externalKey,
         externalKeyUrl,
         externalFingerprint,
+        profile,
       });
       if (asJson) {
         const jr = toJsonReport(r, dir, TOOL_VERSION);
