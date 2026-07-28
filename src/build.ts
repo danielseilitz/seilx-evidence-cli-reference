@@ -173,7 +173,11 @@ for (const file of await readdir(timestampsDir)) {
   const neomundi = {
     schema_version: "neomundi-measurement/0.1",
     synthetic: true,
-    measurement_id: "meas_synth_0001",
+    observation_id: "nm-seilx-syn-001",
+    source: {
+      trace_id: "nm-seilx-trace-0001",
+      source_batch_id: "nm-seilx-batch-0001",
+    },
     measured_at: now,
     subject_id: "subj_synth_0001",
     signal: {
@@ -204,7 +208,7 @@ for (const file of await readdir(timestampsDir)) {
     canonicalization: "RFC8785",
     artifacts: [
       { role: "seilx.evidence", file: "evidence.json", hash: `sha256:${evidenceHash}` },
-      { role: "neomundi.measurement", file: "neomundi_artifact.json", hash: `sha256:${neomundiHash}` },
+      { role: "neomundi.runtime_observation", file: "neomundi_artifact.json", hash: `sha256:${neomundiHash}` },
     ],
     liability_note:
       "SEILX asserts integrity and linkage of the referenced artifacts. It does NOT attest to measurement correctness or content truth.",
@@ -346,7 +350,7 @@ function fileRole(f: string): string {
     case "evidence.json":
       return "seilx.evidence";
     case "neomundi_artifact.json":
-      return "neomundi.measurement";
+      return "neomundi.runtime_observation";
     case "association.json":
       return "seilx.association";
     case "signature.sig":
