@@ -171,7 +171,7 @@ for (const file of await readdir(timestampsDir)) {
   };
 
   const neomundi = {
-    schema_version: "neomundi-measurement/0.1",
+    schema_version: "neomundi-runtime-observation/0.1",
     synthetic: true,
     observation_id: "nm-seilx-syn-001",
     source: {
