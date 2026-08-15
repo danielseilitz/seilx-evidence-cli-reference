@@ -10,8 +10,9 @@ You need only three things:
 - the packet directory (e.g. `Evidence_Packet_001/` or its `.tar.gz`),
 - the SEILX public key (`seilx_public.pem`), fetched from a stable URL
   published separately by SEILX (GitHub repo / SEILX domain),
-- the SEILX public-key fingerprint (SHA-256), quoted separately from
-  the file itself (release notes / signed announcement / DNS TXT).
+- the SEILX public-key fingerprint — SHA-256 over the DER-encoded
+  SubjectPublicKeyInfo (SPKI-DER) bytes of the key — quoted separately
+  from the file itself (release notes / signed announcement / DNS TXT).
 
 And two standard tools: `openssl` and `sha256sum` (both preinstalled on
 macOS and Linux). The SEILX CLI is optional convenience.
@@ -39,16 +40,17 @@ curl -o seilx_public.pem https://<seilx-stable-url>/seilx_public.pem
 
 ## 2. Verify the fingerprint of the downloaded key
 
-Take the SHA-256 fingerprint SEILX quoted out-of-band and confirm it
-matches the file you just downloaded. If it does not match, STOP — you
-have the wrong key.
+Take the SHA-256(SPKI-DER) fingerprint SEILX quoted out-of-band and
+confirm it matches the key you just downloaded. The fingerprint is
+computed over the DER-encoded SubjectPublicKeyInfo bytes, never over the
+PEM text. If it does not match, STOP — you have the wrong key.
 
 ```sh
 # Expected fingerprint (example — replace with the one SEILX quoted):
 EXPECTED=975dc0d6c03ce5c083c0f2b0913a420d8365c739baba512164e1c9fff826c9d2
 
-# Compute the actual fingerprint of the trimmed PEM:
-ACTUAL=$(awk 'NF' seilx_public.pem | sha256sum | awk '{print $1}')
+# Compute the actual fingerprint over the SPKI-DER bytes:
+ACTUAL=$(openssl pkey -pubin -in seilx_public.pem -outform DER | sha256sum | awk '{print $1}')
 echo "expected=$EXPECTED"
 echo "actual  =$ACTUAL"
 test "$EXPECTED" = "$ACTUAL" && echo "FINGERPRINT OK" || echo "FINGERPRINT MISMATCH — STOP"
@@ -78,7 +80,7 @@ openssl pkeyutl -verify -pubin -inkey public_key.pem \
 # expected: Signature Verified Successfully
 
 # 3c. Identity binding
-sha256sum public_key.pem              # must equal $EXPECTED
+openssl pkey -pubin -in public_key.pem -outform DER | sha256sum  # must equal $EXPECTED
 diff public_key.pem ../seilx_public.pem   # must be empty
 
 # 3d. RFC 3161 timestamps (if timestamps/*.tsr present)

@@ -60,6 +60,18 @@ security-relevant claim is independently checkable with \`openssl\` and
 Open \`evidence.json\` in a text editor, change a single digit, save,
 then re-run the verifier. Verification MUST fail and MUST name the
 affected file.
+
+## Note on the packet signing key
+
+The \`public_key.pem\` included in this example packet is the ephemeral
+public key corresponding to the private key used to sign this specific
+synthetic packet.
+
+It is not intended to represent a persistent SEILX production identity or
+to match any separately published SEILX public key.
+
+Independent verification of this packet should therefore use the
+\`public_key.pem\` included with the packet.
 `;
 
 const VERIFY = `# Verification — standard tools only
@@ -372,7 +384,9 @@ function fileRole(f: string): string {
  *  - Unfilled placeholders (`REPLACE_WITH_*`).
  *  - Missing required fields.
  *  - Mismatched public key PEM (byte comparison of the trimmed SPKI PEM).
- *  - Mismatched SHA-256 fingerprint (`sha256(trimmed PEM)`).
+ *  - Mismatched fingerprint (`fingerprint_spki_sha256` must equal
+ *    SHA-256 over the DER-encoded SubjectPublicKeyInfo (SPKI-DER) bytes).
+ *  - Missing or non-canonical `fingerprint_input` (must be "SPKI-DER").
  *  - Any embedded PRIVATE KEY block.
  *
  * On success returns the identity object with only public fields, for
@@ -404,7 +418,8 @@ async function loadAndValidateIdentity(
     "valid_from",
     "issuer",
     "publication_url",
-    "fingerprint_sha256",
+    "fingerprint_spki_sha256",
+    "fingerprint_input",
     "public_key_pem",
   ] as const;
   for (const k of required) {
@@ -466,10 +481,16 @@ async function loadAndValidateIdentity(
   const expectedFp = sha256Hex(
   createPublicKey(declaredPem).export({ type: "spki", format: "der" }) as Buffer
 );
-  if (String(parsed.fingerprint_sha256).toLowerCase() !== expectedFp) {
+  if (parsed.fingerprint_input !== "SPKI-DER") {
     throw new Error(
-      `Identity fingerprint_sha256 does not match sha256(trimmed public_key_pem).\n` +
-        `  declared: ${String(parsed.fingerprint_sha256)}\n` +
+      `Identity fingerprint_input must be 'SPKI-DER' (got ${String(parsed.fingerprint_input)}). ` +
+        "The canonical SEILX fingerprint is SHA-256 over the DER-encoded SubjectPublicKeyInfo bytes.",
+    );
+  }
+  if (String(parsed.fingerprint_spki_sha256).toLowerCase() !== expectedFp) {
+    throw new Error(
+      `Identity fingerprint_spki_sha256 does not match SHA-256 over the SPKI-DER bytes of public_key_pem.\n` +
+        `  declared: ${String(parsed.fingerprint_spki_sha256)}\n` +
         `  computed: ${expectedFp}\n` +
         "Regenerate the identity file from 'seilx export-pubkey'.",
     );
@@ -485,7 +506,8 @@ async function loadAndValidateIdentity(
     valid_until: parsed.valid_until ?? null,
     issuer: parsed.issuer,
     publication_url: parsed.publication_url,
-    fingerprint_sha256: expectedFp,
+    fingerprint_spki_sha256: expectedFp,
+    fingerprint_input: "SPKI-DER",
   };
   if (parsed.notes) out.notes = parsed.notes;
   return out;

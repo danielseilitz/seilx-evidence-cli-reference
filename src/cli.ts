@@ -29,8 +29,10 @@ Usage:
       Optional: --external-key <public_key.pem> to bind identity out-of-band.
       Optional: --external-key-url <https://...> to fetch the key over HTTPS
       (convenience; the security value is still the fingerprint match).
-      Optional: --external-fingerprint <sha256 hex> to match the packet key
-      against an out-of-band-quoted fingerprint (release notes, DNS TXT).
+      Optional: --external-fingerprint <sha256 hex> — SHA-256 over the
+      DER-encoded SubjectPublicKeyInfo (SPKI-DER) bytes of the public key —
+      to match the packet key against an out-of-band-quoted fingerprint
+      (release notes, DNS TXT).
       Only when one of these matches can identity status become PASS;
       otherwise it stays WARN.
       Optional: --json to emit a machine-readable verification report
@@ -61,7 +63,7 @@ Usage:
       Emit a fresh Ed25519 keypair (public_key.pem, private_key.pem) to outDir.
   seilx export-pubkey <packetDir> [--out <dir>] [--json]
       Copy the packet's public_key.pem out to a separate, publishable
-      location together with its SHA-256 fingerprint. The result is meant
+      location together with its SHA-256(SPKI-DER) fingerprint. The result is meant
       to be published at a stable URL (e.g. GitHub repo, SEILX domain) so
       independent verifiers can run:
         seilx verify <packetDir> --external-key <exported_public_key.pem>

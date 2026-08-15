@@ -181,7 +181,8 @@ seilx build ./out --key ./keys/private_key.pem --identity ./identity.json
     "https://github.com/…/public_key.pem",
     "https://seil.group/keys/seilx-signing-2026-01.pem"
   ],
-  "fingerprint_sha256": "…"
+  "fingerprint_spki_sha256": "…",
+  "fingerprint_input": "SPKI-DER"
 }
 ```
 
@@ -277,7 +278,7 @@ published, out-of-packet location and pass it to the verifier:
 seilx verify ./Evidence_Packet_001 --external-key ./published_key.pem
 ```
 
-The verifier computes the SHA-256 fingerprint of the external key and
+The verifier computes the SHA-256(SPKI-DER) fingerprint of the external key and
 compares it to the packet's `public_key.pem`. `PASS` requires an exact
 match; `FAIL` on mismatch. No URL list inside the packet can substitute
 for this step.

@@ -12,9 +12,10 @@ It is consumed by `seilx build --identity <file>` to:
 1. Refuse to sign unless the caller also provides a matching `--key`
    (private key path outside the repository).
 2. Validate that the supplied private key derives a public key whose
-   PEM and SHA-256 fingerprint match the values declared in this file
+   PEM and SHA-256(SPKI-DER) fingerprint match the values declared in this file
    **exactly** — otherwise the build fails.
-3. Embed the declared identity (`key_id`, `fingerprint_sha256`,
+3. Embed the declared identity (`key_id`, `fingerprint_spki_sha256`,
+   `fingerprint_input`,
    `publication_url`, `valid_from`, `issuer`) into
    `signing_info.json` inside the packet.
 
@@ -37,7 +38,8 @@ It is consumed by `seilx build --identity <file>` to:
 | `key_id` | yes | stable ID, e.g. `seilx-signing-key-2026-01` |
 | `algorithm` | yes | `Ed25519` |
 | `public_key_pem` | yes | SPKI PEM, trimmed with trailing `\n` |
-| `fingerprint_sha256` | yes | `sha256(public_key_pem trimmed)` — must match `export-pubkey` output |
+| `fingerprint_spki_sha256` | yes | SHA-256 over the DER-encoded SubjectPublicKeyInfo (SPKI-DER) bytes of the Ed25519 public key — must match `export-pubkey` output |
+| `fingerprint_input` | yes | must be exactly `SPKI-DER` |
 | `valid_from` | yes | ISO-8601 UTC |
 | `valid_until` | no | ISO-8601 UTC; omit for open-ended |
 | `status` | yes | `active` \| `retired` |

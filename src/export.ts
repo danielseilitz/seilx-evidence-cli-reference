@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
-import { sha256Hex } from "./hash.ts";
+import { publicKeyFingerprintSpkiSha256 } from "./hash.ts";
 
 export interface ExportOptions {
   packetDir: string;
@@ -10,12 +10,13 @@ export interface ExportOptions {
 }
 
 export interface ExportReport {
-  schema_version: "seilx-pubkey-export/0.1";
+  schema_version: "seilx-pubkey-export/0.2";
   packet_dir: string;
   out_dir: string;
   public_key_file: string;
   fingerprint_file: string;
-  fingerprint_sha256: string;
+  fingerprint_spki_sha256: string;
+  fingerprint_input: "SPKI-DER";
   algorithm: "Ed25519";
   usage_hint: string;
   private_key_scan: {
@@ -26,7 +27,7 @@ export interface ExportReport {
 
 /**
  * Copy the packet's public_key.pem out to a separate directory ready for
- * publication, together with its SHA-256 fingerprint. Refuses to run if any
+ * publication, together with its SHA-256 fingerprint over the SPKI-DER bytes. Refuses to run if any
  * private_key.pem is discovered in the packet directory or the chosen out
  * directory — the whole point of this step is that the published artifact is
  * bindable to an identity WITHOUT leaking key material.
@@ -57,8 +58,9 @@ export async function exportPublicKey(opts: ExportOptions): Promise<ExportReport
   if (!/BEGIN PUBLIC KEY/.test(pem)) {
     throw new Error(`Refusing to export: ${pubPath} is not a PEM-encoded public key.`);
   }
-  // Fingerprint is over the trimmed PEM text (matches verify.ts identity check).
-  const fingerprint = sha256Hex(pem.trim());
+  // Canonical fingerprint: SHA-256 over the DER-encoded SubjectPublicKeyInfo
+  // (SPKI-DER) bytes — identical to the verifier's identity check.
+  const fingerprint = publicKeyFingerprintSpkiSha256(pem);
 
   const outPub = join(outDir, "seilx_public.pem");
   const outFp = join(outDir, "seilx_public.pem.sha256");
@@ -70,15 +72,16 @@ export async function exportPublicKey(opts: ExportOptions): Promise<ExportReport
   await writeFile(outMeta, renderPublishMd(fingerprint));
 
   return {
-    schema_version: "seilx-pubkey-export/0.1",
+    schema_version: "seilx-pubkey-export/0.2",
     packet_dir: packetDir,
     out_dir: outDir,
     public_key_file: outPub,
     fingerprint_file: outFp,
-    fingerprint_sha256: fingerprint,
+    fingerprint_spki_sha256: fingerprint,
+    fingerprint_input: "SPKI-DER",
     algorithm: "Ed25519",
     usage_hint:
-      "Publish seilx_public.pem at a stable URL and quote the SHA-256 fingerprint out-of-band. Verifiers run: seilx verify <packet> --external-key seilx_public.pem",
+      "Publish seilx_public.pem at a stable URL and quote the SHA-256(SPKI-DER) fingerprint out-of-band. Verifiers run: seilx verify <packet> --external-key seilx_public.pem",
     private_key_scan: {
       scanned_paths: scanned,
       private_key_present: false,
@@ -125,12 +128,23 @@ etc.). It contains NO private key material.
 | file | role |
 |------|------|
 | \`seilx_public.pem\` | Ed25519 public key (SPKI PEM) |
-| \`seilx_public.pem.sha256\` | \`sha256sum -c\` compatible fingerprint |
+| \`seilx_public.pem.sha256\` | \`sha256sum -c\` compatible file hash of the PEM |
 
 ## Fingerprint
 
+The canonical SEILX key fingerprint is SHA-256 over the DER-encoded
+SubjectPublicKeyInfo (SPKI-DER) bytes of the Ed25519 public key — NOT over
+the PEM text.
+
 \`\`\`
-SHA-256(seilx_public.pem trimmed): ${fp}
+fingerprint_input:       SPKI-DER
+fingerprint_spki_sha256: ${fp}
+\`\`\`
+
+Recompute it with standard tools:
+
+\`\`\`sh
+openssl pkey -pubin -in seilx_public.pem -outform DER | sha256sum
 \`\`\`
 
 Quote this fingerprint separately from the file itself (README, release
@@ -140,9 +154,9 @@ only when both the file hash and the quoted fingerprint agree.
 ## How reviewers use this
 
 1. Download \`seilx_public.pem\` from the stable location.
-2. Confirm its SHA-256 matches the fingerprint above:
+2. Confirm its SHA-256(SPKI-DER) fingerprint matches the value above:
    \`\`\`sh
-   sha256sum -c seilx_public.pem.sha256
+   openssl pkey -pubin -in seilx_public.pem -outform DER | sha256sum
    \`\`\`
 3. Run identity-bound verification on a received packet:
    \`\`\`sh
@@ -163,12 +177,13 @@ export function formatExportReport(r: ExportReport): string {
   const lines: string[] = [];
   lines.push(`EXPORTED public key: ${r.public_key_file}`);
   lines.push(`fingerprint file:    ${r.fingerprint_file}`);
-  lines.push(`SHA-256:             ${r.fingerprint_sha256}`);
+  lines.push(`SHA-256(SPKI-DER):   ${r.fingerprint_spki_sha256}`);
+  lines.push(`fingerprint_input:   ${r.fingerprint_input}`);
   lines.push(`algorithm:           ${r.algorithm}`);
   lines.push("");
   lines.push("private_key_scan: no PRIVATE KEY material found in packet or output directory.");
   lines.push("");
-  lines.push("Next: publish seilx_public.pem at a stable URL, quote the fingerprint separately,");
+  lines.push("Next: publish seilx_public.pem at a stable URL, quote the SPKI-DER fingerprint separately,");
   lines.push("and run: seilx verify <packet> --external-key seilx_public.pem");
   return lines.join("\n");
 }

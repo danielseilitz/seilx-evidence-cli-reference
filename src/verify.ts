@@ -2,31 +2,18 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalJson } from "./canonicalize.ts";
-import { sha256Hex } from "./hash.ts";
+import { sha256Hex, publicKeyFingerprintSpkiSha256 } from "./hash.ts";
 import { loadPublicKey, verifyBytes } from "./sign.ts";
 import { haveOpenssl, readTimestampGenTime, verifyTimestamp } from "./tsr.ts";
-import { createPublicKey } from "node:crypto";
 /**
- * Read an Ed25519 (or any SPKI) public key from PEM text via DER, and return
- * its SHA-256 fingerprint over the DER (SPKI) bytes.
+ * Canonical SEILX public-key fingerprint helper.
  *
- * Node's createPublicKey() on a raw PEM string throws
- * `DECODER routines::unsupported` for Ed25519 under OpenSSL 3 providers.
- * Decoding PEM -> base64 -> DER and reading it as {format:"der",type:"spki"}
- * is the reliable path. The fingerprint is computed over the DER bytes, never
- * over the PEM text, so whitespace or line-ending variants of the same key
- * produce the same fingerprint.
+ * The fingerprint is SHA-256 over the DER-encoded SubjectPublicKeyInfo
+ * (SPKI-DER) bytes of the Ed25519 public key — never over the PEM text —
+ * so whitespace or line-ending variants of the same key produce the same
+ * fingerprint. Shared implementation lives in ./hash.ts.
  */
-function publicKeyFingerprint(pem: string): string {
-  const b64 = pem
-    .replace(/-----BEGIN PUBLIC KEY-----/, "")
-    .replace(/-----END PUBLIC KEY-----/, "")
-    .replace(/\s+/g, "");
-  const der = Buffer.from(b64, "base64");
-  // Validate it really is a well-formed SPKI key; throws on garbage input.
-  createPublicKey({ key: der, format: "der", type: "spki" });
-  return sha256Hex(der);
-}
+const publicKeyFingerprint = publicKeyFingerprintSpkiSha256;
 
 export interface VerifyReport {
   ok: boolean;
@@ -75,7 +62,7 @@ export interface VerifyOptions {
    */
   externalKeyUrl?: string;
   /**
-   * A SHA-256 fingerprint (hex, of the trimmed PEM) supplied out-of-band
+   * A SHA-256 fingerprint (hex, over the SPKI-DER bytes) supplied out-of-band
    * (release notes, DNS TXT, signed announcement). If set, the packet's
    * public key must match this value; if `externalKeyPath` / `externalKeyUrl`
    * is also set, the downloaded key must ALSO match. Any mismatch → FAIL.
