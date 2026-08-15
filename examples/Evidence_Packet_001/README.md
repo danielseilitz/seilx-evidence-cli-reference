@@ -39,3 +39,10 @@ security-relevant claim is independently checkable with `openssl` and
 Open `evidence.json` in a text editor, change a single digit, save,
 then re-run the verifier. Verification MUST fail and MUST name the
 affected file.
+## Note on the packet signing key
+
+The `public_key.pem` included in this example packet is the ephemeral public key corresponding to the private key used to sign this specific synthetic packet.
+
+It is not intended to represent a persistent SEILX production identity or to match any separately published SEILX public key.
+
+Independent verification of this packet should therefore use the `public_key.pem` included with the packet.
